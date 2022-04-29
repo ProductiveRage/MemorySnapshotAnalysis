@@ -1,0 +1,6 @@
+*.suo
+*.user
+.vs/
+**/Properties/launchSettings.json
+[Bb]in/
+[Oo]bj/
