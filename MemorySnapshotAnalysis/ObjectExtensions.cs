@@ -1,8 +1,9 @@
 ﻿using System.Collections;
 using System.Collections.Immutable;
+using System.Web;
 using Microsoft.Diagnostics.Runtime;
 
-namespace ClrMdTest
+namespace MemorySnapshotAnalysis
 {
     public static class ObjectExtensions
     {
@@ -15,11 +16,116 @@ namespace ClrMdTest
             ImmutableArray<(CanHandle CanHandle, Render GetLines)>? typeHandlers = null,
             Action<string>? writeTo = null)
         {
-            Console.WriteLine($"= {title} ========----------------------");
-            Console.WriteLine();
+            writeTo ??= Console.WriteLine;
+
+            writeTo($"= {title} ========----------------------");
+            writeTo("");
             foreach (var line in Dump(value, parents: Enumerable.Empty<object>(), typeHandlers ?? DefaultTypeHandlers) ?? Enumerable.Empty<string>())
             {
-                (writeTo ?? Console.WriteLine)(line);
+                writeTo(line);
+            }
+        }
+
+        public static void DumpHtml(
+            this object value,
+            string title,
+            ImmutableArray<(CanHandle CanHandle, Render GetLines)>? typeHandlers = null,
+            Action<string>? writeTo = null)
+        {
+            writeTo ??= Console.WriteLine;
+
+            writeTo($"<h2>{HttpUtility.HtmlEncode(title)}</h2>");
+            writeTo("");
+
+            var lines = Dump(value, parents: Enumerable.Empty<object>(), typeHandlers ?? DefaultTypeHandlers) ?? Enumerable.Empty<string>();
+            
+            writeTo("<pre>"); // TODO: Any logic before wrapping in <pre>?
+            foreach (var line in lines)
+            {
+                writeTo(line);
+            }
+            writeTo("</pre>");
+        }
+
+        public static void DumpHtmlTable<T>(
+            this IEnumerable<T> values,
+            string title,
+            ImmutableArray<(CanHandle CanHandle, Render GetLines)>? typeHandlers = null,
+            Action<string>? writeTo = null)
+        {
+            var publicFieldsAndProperties = typeof(T).GetFields()
+                .Select(f => (f.Name, GetValue: (Func<T, object?>)(value => f.GetValue(value))))
+                .Concat(
+                    typeof(T)
+                        .GetProperties()
+                        .Where(p => p.CanRead && !p.GetIndexParameters().Any())
+                        .Select(p => (p.Name, GetValue: (Func<T, object?>)(value => p.GetValue(value)))))
+                .ToArray();
+
+            writeTo ??= Console.WriteLine;
+
+            writeTo($"<h2>{HttpUtility.HtmlEncode(title)}</h2>");
+            writeTo("");
+            if (!publicFieldsAndProperties.Any())
+            {
+                writeTo($"No fields or properties to query on type {typeof(T).FullName}");
+                return;
+            }
+
+            writeTo("<table>");
+            writeTo("<thead>");
+            writeTo("<tr>");
+            foreach (var (name, _) in publicFieldsAndProperties)
+            {
+                writeTo($"<td>{HttpUtility.HtmlEncode(name)}</td>");
+            }
+            writeTo("</tr>");
+            writeTo("</thead>");
+            writeTo("<tbody>");
+            var atLeastOneValue = false;
+            foreach (var value in values)
+            {
+                writeTo("<tr>");
+                foreach (var (_, getValue) in publicFieldsAndProperties)
+                {
+                    writeTo($"<td>{RenderHtmlValue(getValue(value))}</td>");
+                }
+                writeTo("</tr>");
+                atLeastOneValue = true;
+            }
+            if (!atLeastOneValue)
+            {
+                writeTo($"<tr><td colspan=\"{publicFieldsAndProperties.Length}\">No items to display</td></tr>");
+            }
+            writeTo("</tbody>");
+            writeTo("</table>");
+
+            string RenderHtmlValue(object? value)
+            {
+                var lines = Dump(value, parents: Enumerable.Empty<object>(), typeHandlers ?? DefaultTypeHandlers) ?? Enumerable.Empty<string>();
+
+                // TODO: Justify this nonsense
+                if (value is not null)
+                {
+                    var type = value.GetType();
+                    if ((type.IsPrimitive || type == typeof(DateTime) || type == typeof(DateTimeOffset)) && (lines.Count() == 1))
+                    {
+                        var line1 = lines.First();
+                        var line1Encoded = HttpUtility.HtmlEncode(line1);
+                        if ((line1Encoded == line1) && !line1.Contains('\r') && !line1.Contains('\n'))
+                        {
+                            return line1;
+                        }
+                    }
+                }
+
+                var encodedContent = string.Join(
+                    "<br>",
+                    lines
+                        .Select(HttpUtility.HtmlEncode)
+                        .Select(line => line!.Replace("\r\n", "\n").Replace('\r', '\n').Replace("\n", "<br>")));
+
+                return $"<pre>{encodedContent}</pre>";
             }
         }
 
@@ -41,7 +147,7 @@ namespace ClrMdTest
                     type => typeof(IEnumerable<ClrStackFrame>).IsAssignableFrom(type),
                     value => RenderStackTrace((IEnumerable<ClrStackFrame>)value)));
 
-        private static IEnumerable<string>? Dump(object value, IEnumerable<object> parents, ImmutableArray<(CanHandle CanHandle, Render GetLines)> typeHandlers)
+        private static IEnumerable<string>? Dump(object? value, IEnumerable<object> parents, ImmutableArray<(CanHandle CanHandle, Render GetLines)> typeHandlers)
         {
             if (value is null)
             {

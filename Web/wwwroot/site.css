@@ -1,0 +1,47 @@
+html {
+    font-family: Segoe UI, Frutiger, Frutiger Linotype, Dejavu Sans, Helvetica Neue, Arial, sans-serif;
+}
+
+body > br {
+    display: none; /* There's enough spacing in the html rendering without the extra blank lines */
+}
+
+body > p {
+    opacity: 0.5; /* These top level progress messages can be de-emphasised */
+}
+
+table {
+    border-collapse: collapse;
+    max-width: 100%;
+}
+
+table th, table td {
+    padding: 4px 8px;
+}
+
+table thead tr {
+    background: #66f;
+    color: white;
+}
+
+table tbody tr:nth-child(odd) {
+    background: #f1f1f1;
+}
+
+table pre {
+    max-width: 70vw; /* TODO: Justify this */
+    max-height: 6rem;
+    overflow: auto;
+}
+
+.hidden {
+    max-height: 7rem;
+    overflow: hidden;
+    opacity: 0.5;
+    display: block; /* Make max-height work with tables */
+}
+
+a.expand {
+    display: block;
+    margin-bottom: 1rem;
+}
