@@ -35,6 +35,7 @@ namespace MemorySnapshotAnalysis
 					() => PrintRuntimeInfo(runtime, writeTo, html),
 					() => PrintMemoryRegionInfo(runtime, writeTo, html),
 					() => PrintHeapAnalysis(runtime, writeTo, html),
+					() => PrintPausedMethods(runtime, writeTo, html),
 					() => PrintThreadAnalysis(runtime, writeTo, html, onlyIfGotException: false),
 					() => PrintThreadAnalysis(runtime, writeTo, html, onlyIfGotException: true)
 				};
@@ -145,6 +146,17 @@ namespace MemorySnapshotAnalysis
 			$"Overall {stringObjectCounter:N0} \"System.String\" objects take up {totalStringObjectSize:N0} bytes ({(totalStringObjectSize / 1024.0 / 1024.0):N2} MB)"
 				.Dump("Total String Storage Space", writeTo, html);
 		}
+
+		static void PrintPausedMethods(ClrRuntime runtime, Action<string> writeTo, bool html) =>
+			runtime.Threads
+				.Select(thread => thread.EnumerateStackTrace()
+					.Select(frame => frame.Method?.Signature)
+					.FirstOrDefault(signature => signature is not null))
+				.Where(signature => signature is not null)
+				.GroupBy(signature => signature)
+				.Select(group => new { Count = group.Count(), Signature = group.Key })
+				.OrderByDescending(signature => signature.Count)
+				.DumpTable("Paused Managed Methods", writeTo, html);
 
 		static void PrintThreadAnalysis(ClrRuntime runtime, Action<string> writeTo, bool html, bool onlyIfGotException) =>
 			runtime.Threads
