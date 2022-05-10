@@ -90,14 +90,17 @@ namespace MemorySnapshotAnalysis
 				}
 
 				var size = obj.Size;
-				var name = type.Name!;
-				if (typeCounts.TryGetValue(name, out var t))
+				var name = type.Name;
+				if (name is not null) // Note: Some types (eg. ones created at runtime by something like JIL) won't have names - skip these
 				{
-					typeCounts[name] = (t.Bytes + size, t.Count + 1);
-				}
-				else
-				{
-					typeCounts[name] = (size, 1);
+					if (typeCounts.TryGetValue(name, out var t))
+					{
+						typeCounts[name] = (t.Bytes + size, t.Count + 1);
+					}
+					else
+					{
+						typeCounts[name] = (size, 1);
+					}
 				}
 
 				if (type.IsString)
