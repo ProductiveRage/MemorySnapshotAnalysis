@@ -17,10 +17,18 @@ There are separate projects for these two output methods; the `Console` and `Web
 
 ## Example output
 
+The initial view when the `Web` project has processed a crash dump file (depending upon how large the file is, this may take a minute) -
+
 ![The initial web view](/Docs/InitialView.jpg)
+
+Paused managed methods, ordered by how many threads are paused on the method (this is where the `ReadSyncOverAsync` calls can be seen in this dump) -
 
 ![Paused managed methods (ordered by thread occurrence count)](/Docs/PausedManagedMethods.jpg)
 
+There is an "All Managed Threads" table that lists every managed thread with its current stack trace (where available) and a "Managed Threads with Exceptions" table that only shows managed threads that have an exception on them currently (which may be the case if you have something configured to automatically take a memory snapshot when a particular type of exception is thrown) -
+
 ![Managed threads with exceptions](/Docs/ManagedThreadsWithExceptions.jpg)
+
+There's a section that shows the largest items on the LOH, since this can sometimes explain GC-related performance issues -
 
 ![The largest items on the Large Object Heap](/Docs/LargestLOHEntries.jpg)
