@@ -143,8 +143,21 @@ namespace MemorySnapshotAnalysis
 				.Take(100)
 				.DumpTable("1000 Largest Strings", writeTo, html);
 
+			WriteLine(writeTo, html);
 			$"Overall {stringObjectCounter:N0} \"System.String\" objects take up {totalStringObjectSize:N0} bytes ({(totalStringObjectSize / 1024.0 / 1024.0):N2} MB)"
 				.Dump("Total String Storage Space", writeTo, html);
+
+			WriteLine(writeTo, html);
+			heap.Segments
+				.Where(segment => segment.IsLargeObjectSegment)
+				.SelectMany(segment => segment.EnumerateObjects())
+				.Select(obj => (obj.Type is null) || (obj.Type == heap.FreeType)
+					? default
+					: (Display: obj.Type == heap.StringType ? obj.AsString() : obj.Type.ToString(), obj.Size))
+				.Where(obj => obj != default)
+				.OrderByDescending(obj => obj.Size)
+				.Take(100)
+				.DumpTable("Top 100 Largest LOH Entries", writeTo, html);
 		}
 
 		static void PrintPausedMethods(ClrRuntime runtime, Action<string> writeTo, bool html) =>
