@@ -1,35 +1,34 @@
-html {
-    font-family: Segoe UI, Frutiger, Frutiger Linotype, Dejavu Sans, Helvetica Neue, Arial, sans-serif;
-}
+html { font-family: Segoe UI, Frutiger, Frutiger Linotype, Dejavu Sans, Helvetica Neue, Arial, sans-serif; }
 
-body > br {
-    display: none; /* There's enough spacing in the html rendering without the extra blank lines */
-}
+/* There's enough spacing in the html rendering without the extra blank lines */
+body > br { display: none; }
 
-body > p {
-    opacity: 0.5; /* These top level progress messages can be de-emphasised */
-}
+/* These top level progress messages can be de-emphasised */
+body > p { opacity: 0.5; }
 
 table {
     border-collapse: collapse;
     max-width: 100%;
 }
 
-table th, table td {
-    padding: 4px 8px;
-}
+table th, table td { padding: 4px 8px; }
 
 table thead tr {
     background: #66f;
     color: white;
 }
 
-table tbody tr:nth-child(odd) {
-    background: #f1f1f1;
-}
+table tbody tr:nth-child(odd) { background: #f1f1f1; }
 
 table pre {
-    max-width: 70vw; /* TODO: Justify this */
+    /* Having table cells that are limited in dimensions and having scrollbars for larger content is hard :(
+       - One solution is to use a fixed table layout but that requires that every column have a size
+       - The solution used for now is to hope that no table has more than one column that contains a pre element
+         (which is what wraps large content) and that the remaining columns don't need more than 30% of the total
+         view width (it still means that the table will infrequently stretch across 100% of the browser window's
+         width but this will suffice for now)
+    */
+    max-width: 70vw;
     max-height: 6rem;
     overflow: auto;
 }

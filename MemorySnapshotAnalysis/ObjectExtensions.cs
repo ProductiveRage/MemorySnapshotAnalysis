@@ -39,7 +39,7 @@ namespace MemorySnapshotAnalysis
 
             var lines = Dump(value, parents: Enumerable.Empty<object>(), typeHandlers ?? DefaultTypeHandlers) ?? Enumerable.Empty<string>();
             
-            writeTo("<pre>"); // TODO: Any logic before wrapping in <pre>?
+            writeTo("<pre>");
             foreach (var line in lines)
             {
                 writeTo(line);
@@ -104,7 +104,9 @@ namespace MemorySnapshotAnalysis
             {
                 var lines = Dump(value, parents: Enumerable.Empty<object>(), typeHandlers ?? DefaultTypeHandlers) ?? Enumerable.Empty<string>();
 
-                // TODO: Justify this nonsense
+                // Primitive values should be rendered by a small enough string that they don't need to be wrapped in a <pre> tag, though this
+                // isn't guaranteed (there could be a custom typeHandler that renders it in a longer format that would benefit from wrapping)
+                // so look at the rendered output and return without wrapping if it looks compact enough
                 if (value is not null)
                 {
                     var type = value.GetType();
@@ -172,8 +174,14 @@ namespace MemorySnapshotAnalysis
             if (type.IsPrimitive || type.IsEnum || type == typeof(DateTime) || type == typeof(DateTimeOffset) || type == typeof(string))
             {
                 var displayValue = type == typeof(int) || type == typeof(uint) || type == typeof(short) || type == typeof(ushort) || type == typeof(long) || type == typeof(ulong)
-                    ? type.GetMethod("ToString", new[] { typeof(string) })!.Invoke(value, new[] { "n0" })
+                    ? (string)type.GetMethod("ToString", new[] { typeof(string) })!.Invoke(value, new[] { "n0" })!
                     : value.ToString();
+
+                // Large strings will be truncated when returned via ClrMd - try to make this clear in the rendering
+                if ((displayValue is not null) && ((displayValue.Length > 10_000) && displayValue.EndsWith("...")))
+                {
+                    displayValue += Environment.NewLine + Environment.NewLine + "<truncated>";
+                }
 
                 return new[] { $"{GetIndentation(parents.Count())}{displayValue}" };
             }
